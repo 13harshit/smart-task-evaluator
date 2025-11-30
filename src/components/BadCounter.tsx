@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react'
 // BUG 5: Heavy computation on every render
 
 export default function BadCounter() {
-    const [c, setC] = useState(0)
+    let [c, setC] = useState(0)
     const [data, setData] = useState<any>(null)
 
     // Heavy computation blocking the main thread
