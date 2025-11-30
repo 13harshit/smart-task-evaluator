@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Loader2, CreditCard, Lock } from 'lucide-react'
 
-export default function PaymentPage() {
+import { Suspense } from 'react'
+
+function PaymentForm() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const returnUrl = searchParams.get('returnUrl') || '/dashboard'
@@ -22,6 +24,43 @@ export default function PaymentPage() {
     const handlePayment = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
+
+        // Simulate payment processing delay
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (user) {
+            // 1. Save Payment Record
+            const { error: paymentError } = await supabase
+                .from('payments')
+                .insert({
+                    user_id: user.id,
+                    amount: 5,
+                    status: 'completed'
+                })
+
+            if (paymentError) {
+                console.error('Error saving payment:', paymentError)
+                alert('Payment processed but failed to save record. Please contact support.')
+                setLoading(false)
+                return
+            }
+
+            // 2. Update user to pro status
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .update({ is_pro: true })
+                .eq('id', user.id)
+
+            if (profileError) {
+                console.error('Profile update error:', profileError)
+                alert('Payment successful but failed to update profile. Please contact support.')
+            } else {
+                alert('Payment Successful! You are now a Pro member.')
+                router.push(returnUrl)
+            }
+        }
 
         setLoading(false)
     }
@@ -109,5 +148,13 @@ export default function PaymentPage() {
                 </CardFooter>
             </Card>
         </div>
+    )
+}
+
+export default function PaymentPage() {
+    return (
+        <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="animate-spin" /></div>}>
+            <PaymentForm />
+        </Suspense>
     )
 }
